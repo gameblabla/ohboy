@@ -62,6 +62,7 @@ SFont_Font* fps_font=NULL;
 SFont_Font* menu_font=NULL;
 
 SDL_Surface *bordersf = NULL;
+SDL_Surface* ScreenSurface;
 
 SDL_Rect myrect;
 /* fps */
@@ -171,6 +172,15 @@ SDL_Joystick * sdl_joy;
 static const int joy_commit_range = 3276;
 static char Xstatus, Ystatus;
 static int use_joy=0;
+
+void Update_RS97()
+{
+	uint32_t *s = screen->pixels;
+	uint32_t *d = ScreenSurface->pixels;
+	for(uint8_t y = 0; y < 240; y++, s += 160, d += 320) 
+		memmove(d, s, 1280);
+	SDL_Flip(ScreenSurface);	
+}
 
 #ifdef CAANOO
 enum
@@ -413,33 +423,8 @@ void paint_menu_bg() {
 			SDL_FreeSurface(tmp_surface);
 			if (bgimage_bitmap_surface)
 			{
-				/*
-				SDL_Rect src, dest;
-				
-				src.x = 0;
-				src.y = 0;
-				src.w = bgimage_bitmap_surface->w;
-				src.h = bgimage_bitmap_surface->h;
-				 
-				dest.x = 0;
-				dest.y = 0;
-				dest.w = bgimage_bitmap_surface->w;
-				dest.h = bgimage_bitmap_surface->h;
-				*/
-				
-				SDL_UnlockSurface(screen);
-				SDL_BlitSurface(bgimage_bitmap_surface, NULL, screen, NULL);
-				/*
-				SDL_BlitSurface(bgimage_bitmap_surface, &src, screen, &dest);
-				*/
-				SDL_Flip(screen);                                              /*Fix for launch BMP not showing when using double buffer*/
 				SDL_BlitSurface(bgimage_bitmap_surface, NULL, screen, NULL);   /*Paints the launch BMP two times*/
-				
 				SDL_FreeSurface(bgimage_bitmap_surface);
-				SDL_Flip(screen);
-				/*
-				SDL_LockSurface(screen);  // for some reason this prevents SFont from displaying.....
-				*/
 			}
 		}
 	#endif /* DINGOO_SIM */
@@ -1438,10 +1423,6 @@ void vid_begin(){
 				((g & 0xfc) << 3) | //mask out two bits, move em to their place (rrrrr gggggg 00000)
 				((b & 0xf8) >> 3); //mask out three bits, shift em to their plae (rrrrr gggggg bbbbb)
 		SDL_FillRect(screen, &rect, hexcolor);
-		#if defined(DINGOO_OPENDINGUX)
-		SDL_Flip(screen);                                        /*Fix for flickering borders with double buffer*/
-		SDL_FillRect(screen, &rect, hexcolor);                   /*Paints the border color two times*/
-		#endif /*DINGOO_OPENDINGUX*/
 	
 		vid_init;
 		if (!upscaler) {
@@ -1451,10 +1432,6 @@ void vid_begin(){
 			border1.w=320;
 			border1.h=240;
 			SDL_BlitSurface(bordersf, &border1, screen, NULL);
-			#if defined(DINGOO_OPENDINGUX)
-			SDL_Flip(screen);                                    /*Fix for flickering borders with double buffer*/
-			SDL_BlitSurface(bordersf, &border1, screen, NULL);   /*Paints the border image two times*/
-			#endif /*DINGOO_OPENDINGUX*/
 		}
 		if ((upscaler > 0) && (upscaler < 3)) {
 			SDL_Rect border1;
@@ -1463,10 +1440,6 @@ void vid_begin(){
 			border1.w=320;
 			border1.h=240;
 			SDL_BlitSurface(bordersf, &border1, screen, NULL);
-			#if defined(DINGOO_OPENDINGUX)
-			SDL_Flip(screen);                                    /*Fix for flickering borders with double buffer*/
-			SDL_BlitSurface(bordersf, &border1, screen, NULL);   /*Paints the border image two times*/
-			#endif /*DINGOO_OPENDINGUX*/
 		}
 		if (upscaler == 3) {
 			SDL_Rect border1;
@@ -1475,10 +1448,6 @@ void vid_begin(){
 			border1.w=320;
 			border1.h=240;
 			SDL_BlitSurface(bordersf, &border1, screen, NULL);
-			#if defined(DINGOO_OPENDINGUX)
-			SDL_Flip(screen);                                    /*Fix for flickering borders with double buffer*/
-			SDL_BlitSurface(bordersf, &border1, screen, NULL);   /*Paints the border image two times*/
-			#endif /*DINGOO_OPENDINGUX*/
 		}
 #ifdef GCWZERO
 		if (upscaler == 5) {
@@ -1494,10 +1463,6 @@ void vid_begin(){
 			border1.w=208;
 			border1.h=160;
 			SDL_BlitSurface(bordersf, &border1, screen, NULL);
-			#if defined(DINGOO_OPENDINGUX)
-			SDL_Flip(screen);                                    /*Fix for flickering borders with double buffer*/
-			SDL_BlitSurface(bordersf, &border1, screen, NULL);   /*Paints the border image two times*/
-			#endif /*DINGOO_OPENDINGUX*/
 		}
 		if (upscaler == 6) {
 			FILE* aspect_ratio_file = fopen("/sys/devices/platform/jz-lcd.0/keep_aspect_ratio", "w");
@@ -1512,10 +1477,6 @@ void vid_begin(){
 			border1.w=192;
 			border1.h=144;
 			SDL_BlitSurface(bordersf, &border1, screen, NULL);
-			#if defined(DINGOO_OPENDINGUX)
-			SDL_Flip(screen);                                    /*Fix for flickering borders with double buffer*/
-			SDL_BlitSurface(bordersf, &border1, screen, NULL);   /*Paints the border image two times*/
-			#endif /*DINGOO_OPENDINGUX*/
 		}
 		if (upscaler == 7) {
 			FILE* aspect_ratio_file = fopen("/sys/devices/platform/jz-lcd.0/keep_aspect_ratio", "w");
@@ -1530,10 +1491,6 @@ void vid_begin(){
 			border1.w=320;
 			border1.h=240;
 			SDL_BlitSurface(bordersf, &border1, screen, NULL);
-			#if defined(DINGOO_OPENDINGUX)
-			SDL_Flip(screen);                                    /*Fix for flickering borders with double buffer*/
-			SDL_BlitSurface(bordersf, &border1, screen, NULL);   /*Paints the border image two times*/
-			#endif /*DINGOO_OPENDINGUX*/
 		}
 #endif
 		vid_fb.first_paint = 0;
@@ -1721,7 +1678,7 @@ void vid_end() {
             }
         }
 
-		SDL_Flip(screen);
+		Update_RS97();
 	}
 	framecounter++;
 	if(framecounter>frameskip) framecounter = 0;
@@ -2248,7 +2205,8 @@ int main(int argc, char *argv[]){
 	screen = WIZ_SetVideoMode(320, 240, 16, SDL_SWSURFACE);
 #else
 #ifdef DINGOO_OPENDINGUX
-	screen = SDL_SetVideoMode(320, 240, 16, SDL_HWSURFACE | SDL_DOUBLEBUF);
+	ScreenSurface = SDL_SetVideoMode(320, 480, 16, SDL_HWSURFACE);
+	screen = SDL_CreateRGBSurface(SDL_SWSURFACE, 320, 240, 16, 0, 0, 0, 0);
 #else
 	screen = SDL_SetVideoMode(320, 240, 16, SDL_SWSURFACE);
 #endif /* DINGOO_OPENDINGUX */

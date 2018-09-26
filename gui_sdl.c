@@ -19,7 +19,10 @@ extern SDL_Surface *screen;
 void *fbcopy;
 int fbsz;
 
-int gui_maprgb(int r, int g, int b){
+extern void Update_RS97();
+
+int gui_maprgb(int r, int g, int b)
+{
 	return SDL_MapRGB(screen->format,r,g,b);
 }
 
@@ -307,7 +310,7 @@ void gui_begin(){
 
 int gui_update(){
 	SDL_UnlockSurface(screen);
-	SDL_Flip(screen);
+	Update_RS97();
 	SDL_LockSurface(screen);
 	return GUI_COPY;
 }

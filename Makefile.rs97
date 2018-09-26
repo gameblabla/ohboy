@@ -1,17 +1,37 @@
-# make -B -f Makefile.linux_sdl
+# OhBoy makefile
+# Dingoo Open Dingux SDK - clach04
+#
+# NOTE! Requires DINGUX_SDK environment variable to be set to Open Dingux
+#       location (typically this is "/opt/opendingux-toolchain").
 
-CC = gcc
+#   make -f Makefile.opendingux clean
+#   make -f Makefile.opendingux
+#   make -f Makefile.opendingux clean all
+
+TARGET = ohboy
+
+EXE_PREFIX = /opt/rs97-toolchain/bin/mipsel-linux-
+CC        = ${EXE_PREFIX}gcc
+STRIP     = ${EXE_PREFIX}strip
 LD = $(CC)
 
-CFLAGS = -O3
-LDFLAGS = -s
+SYSROOT     := $(shell $(CC) --print-sysroot)
+SDL_CFLAGS  := $(shell $(SYSROOT)/usr/bin/sdl-config --cflags)
+SDL_LIBS    := $(shell $(SYSROOT)/usr/bin/sdl-config --libs)
+
+CFLAGS = -Ofast -mno-abicalls -mno-shared -mips32 -msym32 -fno-pic -fno-pie -mno-interlink-compressed -mno-mt -mno-micromips -mno-interlink-mips16 -mno-check-zero-division -mno-mips16 -mlong32 -fdata-sections -ffunction-sections $(SDL_CFLAGS)
+LDFLAGS = -s -Wl,--as-needed -Wl,--gc-sections -flto -s
+
+
+CFLAGS += -DDINGOO_BUILD -DDINGOO_OPENDINGUX -DDISABLE_JOYSTICK
 
 GNUBOY = ./gnuboy
 
 OBJS = $(GNUBOY)/lcd.o $(GNUBOY)/refresh.o $(GNUBOY)/lcdc.o $(GNUBOY)/palette.o $(GNUBOY)/cpu.o $(GNUBOY)/mem.o \
 	$(GNUBOY)/rtc.o $(GNUBOY)/hw.o $(GNUBOY)/sound.o \
 	$(GNUBOY)/events.o $(GNUBOY)/keytable.o \
-	$(GNUBOY)/loader.o $(GNUBOY)/save.o $(GNUBOY)/debug.o $(GNUBOY)/emu.o $(GNUBOY)/main.o \
+	$(GNUBOY)/loader.o $(GNUBOY)/save.o $(GNUBOY)/debug.o $(GNUBOY)/emu.o \
+	$(GNUBOY)/main.o \
 	$(GNUBOY)/rccmds.o $(GNUBOY)/rckeys.o $(GNUBOY)/rcvars.o $(GNUBOY)/rcfile.o $(GNUBOY)/exports.o \
 	$(GNUBOY)/split.o $(GNUBOY)/path.o $(GNUBOY)/inflate.o \
 	$(GNUBOY)/sys/sdl/SFont.o  \
@@ -19,14 +39,16 @@ OBJS = $(GNUBOY)/lcd.o $(GNUBOY)/refresh.o $(GNUBOY)/lcdc.o $(GNUBOY)/palette.o 
 	main.o menu.o \
 	./ubytegui/dialog.o ./ubytegui/font.o ./ubytegui/gui.o ./ubytegui/pixmap.o \
 
+# $(GNUBOY)/sys/dingoo/main.oo 
+
 ## NOTE inc paths are from TinyCore SDL-dev
 DEFS = -DIS_LITTLE_ENDIAN -DALT_PATH_SEP
-INCS = -I$(GNUBOY) -I$(GNUBOY)/sys/sdl -I/usr/include/ -I/tmp/tcloop/SDL-dev/usr/local/
-LIBS =  -lSDLmain -lSDL
+INCS = -I$(GNUBOY) -I$(GNUBOY)/sys/sdl 
+LIBS =  -lc $(SDL_LIBS)
 
 # Use SDL_image - for use with SFont (rather than FREETYPE_TTF)
 # NOTE can still use SFont without SDL_image
-#USE_SDL_IMAGE = True
+USE_SDL_IMAGE = True
 ifdef USE_SDL_IMAGE
 	LIBS +=  -lSDL_image
 	DEFS += -DOHBOY_USE_SDL_IMAGE
@@ -41,7 +63,7 @@ LIBS += -lz
 # Simple disable sound support
 # not as cleanly implemented as in core gnuboy as it
 # still includes unused pcm/sound code... But it works :-)
-GNUBOY_DISABLE_SDL_SOUND = True
+#GNUBOY_DISABLE_SDL_SOUND = True
 ifdef GNUBOY_DISABLE_SDL_SOUND
 	OBJS += $(GNUBOY)/sys/dummy/nosound.o
 	DEFS += -DGNUBOY_DISABLE_SDL_SOUND
@@ -66,11 +88,19 @@ ifdef USE_LIBPNG
 	LIBS += -lpng
 endif
 
-DEFS += -DGNUBOY_NO_SCREENSHOT -DDINGOO_OPENDINGUX -DDINGOO_BUILD
+#DEBUG_BUILD = true
+ifdef DEBUG_BUILD
+	CFLAGS += -g
+	DO_STRIP = 
+else
+	DO_STRIP = ${STRIP} ${TARGET}
+endif
+
+DEFS += -DGNUBOY_NO_SCREENSHOT
 
 MYCC = $(CC) $(CFLAGS) $(INCS) $(DEFS)
 
-all: ohboy_ver.h ohboy
+all: ohboy_ver.h $(TARGET)
 
 # FIXME need better dependency handling
 menu.o: ohboy_ver.h
@@ -78,12 +108,16 @@ menu.o: ohboy_ver.h
 ohboy_ver.h:
 	sh gen_ohboyver.sh > ohboy_ver.h
 
-ohboy: $(OBJS)
+$(TARGET): $(OBJS)
 	$(LD) $(LDFLAGS) $(OBJS) -o $@ $(LIBS)
+	${DO_STRIP}
 
 clean:
-	rm -f ohboy ohboy.exe *.o ubytegui/*.o $(GNUBOY)/*.o
-	rm -f ohboy ohboy.exe *.o ubytegui/*.o $(GNUBOY)/*.o $(GNUBOY)/sys/dingoo/*.o   $(APP_NAME).elf $(APP_NAME).bin $(APP_NAME).app $(APP_NAME).sim
+	rm -f ohboy ohboy.exe *.o ubytegui/*.o $(GNUBOY)/*.o $(GNUBOY)/unzip/*.o  $(GNUBOY)/sys/*/*.o  $(APP_NAME).elf $(APP_NAME).bin $(APP_NAME).app $(APP_NAME).sim $(TARGET)
+
+
+#$(GNUBOY)/sys/dingoo/main.o:
+#	$(MYCC) -Dmain=gnuboy_main -c $(GNUBOY)/sys/dingoo/main.c -o $@
 
 $(GNUBOY)/main.o:
 	$(MYCC) -Dmain=gnuboy_main -c $(GNUBOY)/main.c -o $@
